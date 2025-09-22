@@ -4,7 +4,7 @@ import plotly.graph_objects as go
 from tradingview_ta import TA_Handler, Interval
 from datetime import datetime
 
-st.title("📊 Forex Demand-Supply Zone Screener (Full Version)")
+st.title("📊 Forex Demand-Supply Zone Screener (Full Version Fixed)")
 
 # Sidebar Controls
 pair = st.sidebar.selectbox("Select Pair", ["EURUSD", "GBPUSD", "USDJPY"])
@@ -89,12 +89,18 @@ for i in range(1, len(candles)-1):
                 "distance": round(abs(latest_candle["close"] - base_candle["high"]),5)
             })
 
+# Convert to DataFrame safely
 df_zones = pd.DataFrame(zones)
 
-# Apply filters
-if fresh_only:
+# Ensure all necessary columns exist
+for col in ["pair", "time", "high", "low", "zone_type", "fresh", "distance"]:
+    if col not in df_zones.columns:
+        df_zones[col] = pd.Series(dtype="object")
+
+# Apply filters safely
+if fresh_only and "fresh" in df_zones.columns:
     df_zones = df_zones[df_zones["fresh"] == True]
-if zone_type_filter:
+if zone_type_filter and "zone_type" in df_zones.columns:
     df_zones = df_zones[df_zones["zone_type"].isin(zone_type_filter)]
 
 # Display Table
@@ -104,7 +110,6 @@ st.dataframe(df_zones.tail(20))
 # Plot Candlestick + Zones
 fig = go.Figure()
 if df_zones.shape[0] > 0:
-    # Plot base candle rectangles
     for _, row in df_zones.iterrows():
         color = "Red" if row["zone_type"] in ["RBR", "DBR"] else "Blue"
         fig.add_shape(
